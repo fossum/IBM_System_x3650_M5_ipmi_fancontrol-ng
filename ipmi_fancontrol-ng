@@ -1,36 +1,70 @@
 #!/usr/bin/perl
+
+=head1 NAME
+
+ipmi_fancontrol-ng - IPMI Fan Control for IBM System x3650 M5
+
+=head1 SYNOPSIS
+
+    ./ipmi_fancontrol-ng
+
+=head1 DESCRIPTION
+
+This script controls IPMI compatible server's fan speeds in response to CPU
+temperatures provided by lm-sensors. This script has been tested on a Dell
+PowerEdge R210 II and ported for IBM System x3650 M4/M5, but should work on
+any IPMI compatible server.
+
+The script puts your server into "Full Fan Speed Mode", and then modifies what
+"Full Speed" means. You have to manually use IPMI to set it to e.g. "Optimal"
+when you're not using the script.
+
+=head2 IBM x3650 Port Notes
+
+This port was made in an attempt to quiet down an IBM system x3650 M5. The
+porting involved changing the raw commands, removing the GetFanRPM function as
+it was useless in this scenario, and IBM lists their fans as 1A 1B 2A 2B.
+
+The IMM2 maintains partial control over the fans' actual speed. For example,
+setting the fans at 30% results in an actual fan speed of roughly 24%.
+Sometimes the script fails to update and the IMM2 takes control back over the
+fan speed controls. Overall, the real speed settings feel very coarse.
+
+=head2 What's New
+
+The original script provided a "step" approach where fans would take large
+"steps" depending on the temperatures. In this version, scalar equations are
+generated to provide an easy (and quiet) slope to follow to the next step.
+These equations are simple Y=mx+b linear slopes that effectively provide a fan
+"curve" based on the entries in the %cpu_temp_to_fan_speed hash table.
+
+=head1 AUTHORS
+
+=over 4
+
+=item * Maintainer: Brian Wilson <brian@wiltech.org>
+
+=item * Original Author: Layla Mah <layla@insightfulvr.com>
+
+=item * Original Version: https://github.com/missmah/ipmi_tools
+
+=back
+
+=head1 WARNING
+
+B<WARNING:> You use this script at your own risk, and no warranty is provided.
+Do not use in production environments.
+
+=head1 LICENSE
+
+See the LICENSE file included with this distribution.
+
+=cut
+
 use strict;
 use warnings;
+
 use List::Util qw[min max];
-
-# IBM x3650 Port notes: This port was made in an attempt to quiet down an IBM system x3650 M4.
-#                       The porting involved changing the raw commands, removing the get GetFanRPM as it was
-#                           useless in my scenario and IBM lists their fans as 1A 1B 2A 2B.
-#                       Also the imm2 mantains a partial control over the fans actual speed, for example setting
-#                           the fans at 30% result in an actual fan speed of roughly 24%, sometimes the script
-#                           fails to update and the imm2 takes control back over the fans speed controls. 
-#                       Overall the real speed settings feels very coarse.
-
-# This script controls IPMI compatible server's fan speeds in response to CPU Temperatures provided by lm-sensors.
-# This script has been tested on a Dell PowerEdge R210 II, but should work on any IPMI compatible server.
-#
-# NOTE: The script puts your server into "Full Fan Speed Mode", and then modifies what "Full Speed" means,
-#       You have to manually use IPMI to set it to e.g. "Optimal" when you're not using the script.
-#
-# NOTE: You use this script at your own risk, and no warranty is provided. Do not use in produciton environments.
-#
-# Maintainer: Brian Wilson <brian@wiltech.org>
-# Original Author: Layla Mah <layla@insightfulvr.com>
-# Original Version: https://github.com/missmah/ipmi_tools
-#
-# What's new?
-#
-# The original script provided a "step" approach where fans would take large "steps" depending on the temps.
-# In this version, scalar equations are generated to provide an easy (and quiet) slope to follow to the next step.
-# These equations are simple Y=mx+b linear slopes that effectivly provide a fan "curve" based on the entries in the
-# %cpu_temp_to_fan_speed hash table.
-#
-# More documentation is planned, however I am available to answer basic configuration questions in the mean time.
 
 # System Configuration
 my $hostname            = `hostname`;
@@ -54,7 +88,7 @@ my $ipmi_cmd_listall    = "sdr list full";
 my $ipmi_preamble       = "ipmitool";
 
 # Not needed as it's running directly on proxmox as a service
-#my $ipmi_preamble       = "ipmitool -I $ipmi_connectmode"; 
+#my $ipmi_preamble       = "ipmitool -I $ipmi_connectmode";
 #my $ipmi_preamble       = 'ipmitool -I $ipmi_connectmode -U $ipmi_username -P $ipmi_password -H $ipmi_ipaddress';
 
 # CPU Temp -> Fan Speed Mappings
@@ -67,13 +101,43 @@ $cpu_temp_to_fan_speed{10} = 5;
 
 my %cpu_temp_scale;
 
-# Below this line follows the actual implementation of the script
+=head1 IMPLEMENTATION
+
+=head2 Global Variables
+
+=over 4
+
+=item * $g_current_fan_duty_cycle - Current fan duty cycle percentage
+
+=item * $g_current_gpu_temp - Current GPU temperature
+
+=item * $g_current_cpu_temp - Current CPU temperature
+
+=item * $g_last_set_cpu_temp - Last CPU temperature when fan speed was updated
+
+=item * $g_last_set_gpu_temp - Last GPU temperature when fan speed was updated
+
+=back
+
+=cut
 
 my $g_current_fan_duty_cycle = 0;
 my $g_current_gpu_temp = 0;
 my $g_current_cpu_temp = 0;
 my $g_last_set_cpu_temp = 0;
 my $g_last_set_gpu_temp = 0;
+
+=head2 Internal_DoSetFanSpeed
+
+Sets the fan speed for each individual fan bank using IPMI raw commands.
+
+=over 4
+
+=item Parameters: $fan_speed - The desired fan speed percentage (0-100)
+
+=back
+
+=cut
 
 sub Internal_DoSetFanSpeed
 {
@@ -87,6 +151,18 @@ sub Internal_DoSetFanSpeed
         `$ipmi_preamble raw 0x3a 0x07 $i $fan_speed 0x01> /dev/null 2>&1`;
     }
 }
+
+=head2 SetFanSpeed
+
+Sets the fan speed if temperature change exceeds minimum threshold.
+
+=over 4
+
+=item Parameters: $fan_speed - The desired fan speed percentage (0-100)
+
+=back
+
+=cut
 
 sub SetFanSpeed
 {
@@ -113,6 +189,19 @@ sub SetFanSpeed
     }
 }
 
+=head2 GetCPUTemp
+
+Get current CPU temperature from lmsensors. If there are multiple CPUs,
+the script will automatically choose the highest temperature.
+
+=over 4
+
+=item Returns: Maximum CPU temperature in degrees Celsius
+
+=back
+
+=cut
+
 # Get current CPU temperature from lmsensors. If there are multiple CPU's,
 # the script will automatically choose the highest temperature.
 sub GetCPUTemp
@@ -133,6 +222,14 @@ sub GetCPUTemp
     return $current_cpu_temp;
 }
 
+=head2 CalculateScalars
+
+Calculates the linear interpolation coefficients (slope and y-intercept)
+for each temperature range based on the cpu_temp_to_fan_speed hash.
+This creates smooth transitions between temperature points.
+
+=cut
+
 sub CalculateScalars
 {
     my @previous = ();
@@ -150,17 +247,25 @@ sub CalculateScalars
     }
 }
 
+=head2 UpdateFanSpeed
+
+Main update loop function that reads current temperatures, calculates desired
+fan speeds using linear interpolation, and updates the fans accordingly.
+Also outputs metrics to InfluxDB format for monitoring.
+
+=cut
+
 sub UpdateFanSpeed
-{ 
+{
     my $current_cpu_temp = GetCPUTemp();
     my $current_gpu_temp = 0;
-    
+
     $g_current_cpu_temp = $current_cpu_temp;
     $g_current_gpu_temp = $current_gpu_temp;
-    
+
     print "Maximum CPU Temperature Seen: $current_cpu_temp degrees C.\n";
     print "Maximum GPU Temperature Seen: $current_gpu_temp degrees C.\n";
-    
+
     my $desired_fan_speed = 0;
     my $calculated_speed = 0;
     foreach my $a (reverse sort keys %cpu_temp_scale) {
@@ -183,7 +288,7 @@ sub UpdateFanSpeed
     print FH "fans,host=$hostname speed_percent=$calculated_speed\n";
     print FH "fans,host=$hostname speed_raw=$speed_raw\n";
     close(FH);
-    
+
     SetFanSpeed($desired_fan_speed);
 }
 
