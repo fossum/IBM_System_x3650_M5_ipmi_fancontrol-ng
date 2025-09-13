@@ -26,12 +26,28 @@ Instructions for high-quality IBM System x3650 M5 IPMI Fan Control development.
 
 ### Coding Standards
 
-- Use strict mode
+### General
+
 - Follow naming conventions
 - Write modular and reusable code
-- Include POD documentation and comments
-- Adhere to the DRY principle
 - Write tests for all new features
 - Use version control (Git) with meaningful commit messages
 - Unit tests shall not use real IPMI commands
 - Unit tests shall mock external dependencies
+- Indent code with 4 spaces
+- Limit lines to 100 characters
+- Imports shall be in alphabetical order
+
+#### Perl
+
+- Use strict mode
+- Include POD documentation and comments
+- Adhere to the DRY principle
+
+#### Python
+
+- Follow PEP 8 guidelines
+- Use type hints for function signatures
+- Include docstrings for all functions and classes
+- Use logging module for logging
+- Avoid using global variables
