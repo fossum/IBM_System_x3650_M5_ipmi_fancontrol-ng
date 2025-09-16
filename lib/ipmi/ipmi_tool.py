@@ -116,28 +116,29 @@ class IPMIExecutor:
             IPMIError: If tool is not found
         """
         cmd = self._build_command(subcommand)
+        self.logger.debug(f"Executing IPMI command: {' '.join(cmd[:3])} ...")
 
         try:
-            self.logger.debug(f"Executing IPMI command: {' '.join(cmd[:3])} ...")
-
             result = subprocess.run(
                 cmd,
                 capture_output=True,
                 text=True,
                 timeout=self.config.timeout
             )
+        except subprocess.TimeoutExpired as exc:
+            raise IPMIConnectionError(
+                f"IPMI command timed out after {self.config.timeout} seconds"
+            ) from exc
+        except FileNotFoundError as exc:
+            raise IPMIError(f"IPMI tool not found: {self.config.tool_path}") from exc
 
-            if result.returncode != 0:
-                error_msg = f"IPMI command failed (exit {result.returncode}): {result.stderr.strip()}"
-                self.logger.error(error_msg)
-                raise IPMICommandError(error_msg)
+        if result.returncode != 0:
+            error_msg = f"IPMI command failed (exit {result.returncode}): {result.stderr.strip()}"
+            self.logger.error(error_msg)
+            raise IPMICommandError(error_msg)
 
-            return result.stdout.strip()
+        return result.stdout.strip()
 
-        except subprocess.TimeoutExpired:
-            raise IPMIConnectionError(f"IPMI command timed out after {self.config.timeout} seconds")
-        except FileNotFoundError:
-            raise IPMIError(f"IPMI tool not found: {self.config.tool_path}")
 
     def execute_raw(self, raw_command: Sequence[str]) -> str:
         """Execute raw IPMI command.
@@ -159,7 +160,7 @@ class IPMIExecutor:
         try:
             self.execute(["bmc", "info"])
             return True
-        except (IPMIError, IPMIConnectionError, IPMICommandError):
+        except (IPMIError, IPMIConnectionError, IPMICommandError) as e:
             return False
 
     def __str__(self) -> str:
