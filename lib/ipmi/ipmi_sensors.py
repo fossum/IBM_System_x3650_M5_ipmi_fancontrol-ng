@@ -85,9 +85,10 @@ class SensorReport:
             SensorReading object or None if parsing fails.
         """
         parts = [part.strip() for part in line.split('|')]
+        sensor: SensorReading | None = None
         if len(parts) == 10:
             if parts[1].lower() not in ('na'):
-                return SensorReading(
+                sensor = SensorReading(
                     name=parts[0],
                     value=SensorReport._parse_value(parts[1]),
                     unit=Unit(parts[2].lower()),
@@ -99,8 +100,9 @@ class SensorReport:
                     upper_critical=SensorReport._parse_value(parts[8]),
                     upper_non_recoverable=SensorReport._parse_value(parts[9]),
                 )
-        SensorReport.logger.warning(f"Unexpected sensor report format: {line}")
-        return None
+        else:
+            SensorReport.logger.warning(f"Unexpected sensor report format: {line}")
+        return sensor
 
     @staticmethod
     def _parse_value(value: str) -> str | float | int | None:
