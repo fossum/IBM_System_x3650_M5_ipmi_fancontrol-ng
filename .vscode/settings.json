@@ -1,5 +1,18 @@
 {
     "cSpell.words": [
-        "cpus"
-    ]
+        "cpus",
+        "ipmitool"
+    ],
+    "python.autoComplete.extraPaths": [
+        "${workspaceFolder}/lib"
+    ],
+    "python.globalModuleInstallation": false,
+    "python.terminal.activateEnvInCurrentTerminal": true,
+    "python.analysis.addHoverSummaries": true,
+    "python.analysis.autoFormatStrings": true,
+    "python.analysis.extraPaths": [
+        "${workspaceFolder}/lib"
+    ],
+    "mypy-type-checker.preferDaemon": true,
+    "mypy-type-checker.reportingScope": "workspace"
 }
