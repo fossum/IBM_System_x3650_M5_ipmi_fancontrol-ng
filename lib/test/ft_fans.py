@@ -26,7 +26,8 @@ if __name__ == "__main__":
     fans.set_fan_speed_raw(1, 99)
     sleep(5)
 
-    sensors = fans.get_fans(refresh=True)
+    fans.refresh_sensor_list()
+    sensors = fans.get_fans()
     for sensor in sensors:
         print(
             f"Sensor: {sensor.name}, Value: {sensor.value}, Unit: {sensor.unit}, Status: {sensor.status}"

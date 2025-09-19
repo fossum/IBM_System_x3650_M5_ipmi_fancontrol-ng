@@ -12,9 +12,10 @@ import logging
 from ipmi.ipmi_bmc import BMCManager
 from ipmi.ipmi_sensors import SensorManager, SensorReading, SensorReport, Unit
 from ipmi.ipmi_tool import IPMIExecutor, IPMIError
+from ipmi.ipmi_manager import SensorBasedManager
 
 
-class FanController:
+class FanController(SensorBasedManager):
     """High-level interface for IPMI fan control operations.
 
     This class provides methods for controlling fan speeds using IPMI,
@@ -32,19 +33,13 @@ class FanController:
         }
     }
 
-    logger = logging.getLogger(__name__)
-
     def __init__(self, ipmi_exec: IPMIExecutor, sensor_report: SensorReport | None = None):
         """Initialize fan controller.
 
         Args:
-            ipmi_executor (IPMIExecutor): IPMI command executor instance.
+            ipmi_exec (IPMIExecutor): IPMI command executor instance.
         """
-        self.ipmi = ipmi_exec
-        self.sensor_report = sensor_report
-        if sensor_report is None:
-            sensor_manager = SensorManager(ipmi_exec)
-            self.sensor_list = sensor_manager.get_sensor_list()
+        super().__init__(ipmi_exec, sensor_report)
         self._bmc_report = BMCManager(self.ipmi).get_bmc_report()
 
     def set_fan_speed_raw(self, fan_bank: int, speed_percent: int) -> bool:
@@ -96,26 +91,16 @@ class FanController:
 
         return success
 
-    def get_fan_speeds(self, refresh: bool = False) -> tuple[float, ...]:
+    def get_fan_speeds(self) -> tuple[float, ...]:
         """Get current fan speeds from sensors.
-
-        Args:
-            refresh (bool): Whether to refresh sensor readings.
 
         Returns:
             tuple of float: List of sensor readings with current speeds.
         """
-        return tuple(float(sensor.value) for sensor in self.get_fans(refresh=refresh))
+        return tuple(float(sensor.value) for sensor in self.get_fans())
 
-    def get_fans(self, refresh: bool = False) -> tuple[SensorReading, ...]:
-        """Get current fan sensors.
-
-        Args:
-            refresh (bool): Whether to refresh sensor readings.
-        """
-        if refresh:
-            sensor_manager = SensorManager(self.ipmi)
-            self.sensor_list = sensor_manager.get_sensor_list()
+    def get_fans(self) -> tuple[SensorReading, ...]:
+        """Get current fan sensors."""
         fans: list[SensorReading] = []
         for sensor in self.sensor_list:
             if (

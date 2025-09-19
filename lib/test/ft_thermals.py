@@ -3,7 +3,7 @@ import sys
 from test.connection import get_config
 
 from ipmi.ipmi_tool import IPMIExecutor
-from ipmi_thermals import Thermals
+from ipmi_thermals import ThermalManager
 
 
 if __name__ == "__main__":
@@ -15,7 +15,7 @@ if __name__ == "__main__":
         sys.stderr.write("IPMI connection failed\n")
         exit(1)
 
-    thermals = Thermals(ipmi_executor)
+    thermals = ThermalManager(ipmi_executor)
     sensors = thermals.get_temperatures()
     for sensor in sensors:
         print(

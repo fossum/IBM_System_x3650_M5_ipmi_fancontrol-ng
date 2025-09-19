@@ -13,6 +13,7 @@ import logging
 from curses.ascii import isdigit
 
 from .ipmi_tool import IPMIExecutor
+from .ipmi_manager import BaseManager
 
 
 class BMCReport:
@@ -74,22 +75,20 @@ class BMCReport:
         return BMCReport._parse_int(value)
 
 
-class BMCManager:
+class BMCManager(BaseManager):
     """High-level interface for IPMI BMC operations.
 
     This class provides methods for reading and parsing BMC data,
     with specific support for temperature and fan sensors.
     """
 
-    logger = logging.getLogger(__name__)
-
-    def __init__(self, ipmi_executor: IPMIExecutor):
+    def __init__(self, ipmi_exec: IPMIExecutor):
         """Initialize BMC manager.
 
         Args:
-            ipmi_executor: IPMI command executor instance
+            ipmi_exec: IPMI command executor instance
         """
-        self.ipmi = ipmi_executor
+        super().__init__(ipmi_exec)
 
     def get_bmc_report(self) -> BMCReport:
         """Get the BMC report.

@@ -17,6 +17,7 @@ from typing import Optional
 from dataclasses import dataclass
 
 from .ipmi_tool import IPMIExecutor
+from .ipmi_manager import BaseManager
 
 
 class Unit(StrEnum):
@@ -124,21 +125,20 @@ class SensorReport:
             return value if value.lower() != 'na' else None
 
 
-class SensorManager:
+class SensorManager(BaseManager):
     """High-level interface for IPMI sensor operations.
 
     This class provides methods for reading and parsing sensor data,
     with specific support for temperature and fan sensors.
     """
 
-    def __init__(self, ipmi_executor: IPMIExecutor):
+    def __init__(self, ipmi_exec: IPMIExecutor):
         """Initialize sensor manager.
 
         Args:
-            ipmi_executor: IPMI command executor instance
+            ipmi_exec: IPMI command executor instance
         """
-        self.ipmi = ipmi_executor
-        self.logger = logging.getLogger(__name__)
+        super().__init__(ipmi_exec)
 
     def get_sensor_list(self) -> tuple[SensorReading, ...]:
         """Get list of all sensors.
