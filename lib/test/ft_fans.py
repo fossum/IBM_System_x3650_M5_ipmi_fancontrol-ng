@@ -1,6 +1,8 @@
 import sys
 from time import sleep
 
+sys.path.append("lib")
+
 from test.connection import get_config
 
 from ipmi.ipmi_tool import IPMIExecutor

@@ -63,11 +63,14 @@ class FanController:
         if not 0 <= speed_percent <= 100:
             raise ValueError("Speed percent must be between 0 and 100")
 
+        # Convert percentage to hex byte (0-255).
+        hex_speed = int((speed_percent / 100) * 255)
+
         # Find the correct raw command.
         raw_command = None
         if (manu_cmds := FanController._CMD_CACHE.get(self._bmc_report.manufacturer_id)):
             if (fan_cmd := manu_cmds.get(self._bmc_report.product_id)):
-                raw_command = fan_cmd + [f"0x{fan_bank:02x}", f"{speed_percent:d}", "0x01"]
+                raw_command = f"{fan_cmd} {FanController.as_hex_byte_str(fan_bank)} {FanController.as_hex_byte_str(hex_speed)} {FanController.as_hex_byte_str(1)}"
         if not raw_command:
             raise ValueError("Unsupported manufacturer/product for raw fan control")
 
@@ -133,3 +136,20 @@ class FanController:
             Bool: True if successful, False otherwise.
         """
         return self.set_all_fans_speed(100)
+
+    @staticmethod
+    def as_hex_byte_str(value: int) -> str:
+        """Convert integer to hex byte string.
+
+        Args:
+            value: Integer value (0-255)
+
+        Returns:
+            Hex byte string (e.g., '0x1A')
+
+        Raises:
+            ValueError: If value is out of range.
+        """
+        if not 0 <= value <= 255:
+            raise ValueError("Value must be between 0 and 255")
+        return f"0x{value:02X}"
