@@ -10,7 +10,6 @@ License: See LICENSE file included with this distribution
 
 import re
 import logging
-from curses.ascii import isdigit
 
 from .ipmi_tool import IPMIExecutor
 
@@ -53,7 +52,7 @@ class BMCReport:
 
         Note: Unknown (0x415) will also result in 1045.
         """
-        if all(isdigit(char) for char in value):
+        if value.isdigit():
             return int(value)
         if (match := re.search(r"0x(\d+)", value)):
             return int(match.group(1), 16)

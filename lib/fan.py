@@ -134,4 +134,8 @@ class Fan:
             self.log.debug(f"  - Name: {sensor.name}, Value: {sensor.value}, Unit: {sensor.unit}")
         self.log.debug("------------------------------")
 
-        return len(fan_sensors)
+        return sum(
+            1
+            for sensor in fan_sensors
+            if str(sensor.unit).lower() == "rpm" and sensor.value is not None
+        )

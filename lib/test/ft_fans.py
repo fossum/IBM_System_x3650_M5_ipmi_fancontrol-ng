@@ -1,7 +1,9 @@
 import sys
+from pathlib import Path
 from time import sleep
 
-sys.path.append("lib")
+LIB_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(LIB_ROOT))
 
 from test.connection import get_config
 
@@ -10,8 +12,9 @@ from ipmi_fans import FanController
 
 
 if __name__ == "__main__":
-    # Example usage
     config = get_config()
+
+    speed = 1
 
     ipmi_executor = IPMIExecutor(config)
     if not ipmi_executor.test_connection():
@@ -25,8 +28,11 @@ if __name__ == "__main__":
             f"Sensor: {sensor.name}, Value: {sensor.value}, Unit: {sensor.unit}, Status: {sensor.status}"
         )
 
-    fans.set_fan_speed_raw(1, 99)
-    sleep(5)
+    max_bank = fans.max_fan_bank
+    for bank in range(1, max_bank + 1):
+        success = fans.set_fan_speed_raw(bank, speed)
+        print(f"Set fan bank {bank} to {speed}%, success: {success}")
+    sleep(30)
 
     sensors = fans.get_fans(refresh=True)
     for sensor in sensors:

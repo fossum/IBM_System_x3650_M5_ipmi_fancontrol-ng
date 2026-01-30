@@ -1,53 +1,29 @@
-# x3650 Fan Development Instructions
+# IBM System x3650 M5 IPMI Fan Control – Copilot Instructions
 
-Instructions for high-quality IBM System x3650 M5 IPMI Fan Control development.
+## Big picture
+- Two entry points: legacy Perl daemon [ipmi_fancontrol-ng](ipmi_fancontrol-ng) and Python modules in lib/ used by scripts like [temp_fan.py](temp_fan.py) and tests in lib/test/.
+- Python IPMI stack:
+	- Low-level executor: lib/ipmi/ipmi_tool.py (`IPMIExecutor`, `IPMIConfig`).
+	- Parsers/managers: lib/ipmi/ipmi_sensors.py, lib/ipmi/ipmi_bmc.py.
+	- Fan control: lib/ipmi_fans.py (`FanController`) using raw OEM netfn 0x3a cmd 0x07.
+	- Fan curve logic: lib/fan.py (`Fan`) reads [config.conf](config.conf).
 
-## Project Context
+## Configuration and data flow
+- INI-style config in [config.conf](config.conf) with sections [ipmi], [system], [temperature_curve]. Example in [config.conf.example](config.conf.example).
+- Tests and scripts should treat lib/ as the package root (see sys.path usage in lib/test/).
+- Metrics output file: `/tmp/fan_speed_telegraf` written by `Fan.update_fan_speed()`.
 
-- Latest Perl (App Router)
-- INI for configuration files
-- Perl Critic for linting
-- Test::More for unit and functional tests
+## Project-specific behaviors
+- x3650 M5 has 6 physical fans, but OEM raw control only accepts fan banks 1–4 (see `FanController._CMD_CACHE` in lib/ipmi_fans.py). Banks 5–6 are implicitly tied to the controlled banks.
+- Raw commands must be a list of hex byte strings (e.g., ["0x3a","0x07",...]); do not pass a single concatenated string.
+- Sensor parsing supports both 10-column and 5-column ipmitool outputs (see lib/ipmi/ipmi_sensors.py).
 
-## Development Standards
+## Workflows (hardware-dependent)
+- Functional tests in lib/test/ talk to real IPMI hardware and require ipmitool + working IPMI access.
+- Typical manual runs:
+	- Python: use temp_fan.py or lib/test/ft_fans.py (reads config.conf via lib/test/connection.py).
+	- Perl daemon: ipmi_fancontrol-ng.
 
-### Architecture
-
-- Main script for core logic
-- IPMI binary for system interaction
-- modules to separate concerns
-- Configuration file for settings
-- Logging for debugging and monitoring
-- Error handling with croak and carp
-- Unit tests for all modules
-- Functional tests for end-to-end scenarios
-- Functional tests for system compatibility testing
-- Email notifications for critical events
-
-### Coding Standards
-
-### General
-
-- Follow naming conventions
-- Write modular and reusable code
-- Write tests for all new features
-- Use version control (Git) with meaningful commit messages
-- Unit tests shall not use real IPMI commands
-- Unit tests shall mock external dependencies
-- Indent code with 4 spaces
-- Limit lines to 100 characters
-- Imports shall be in alphabetical order
-
-#### Perl
-
-- Use strict mode
-- Include POD documentation and comments
-- Adhere to the DRY principle
-
-#### Python
-
-- Follow PEP 8 guidelines
-- Use type hints for function signatures
-- Include docstrings for all functions and classes
-- Use logging module for logging
-- Avoid using global variables
+## Conventions to follow
+- Keep Python imports using lib as the package root (e.g., `from ipmi.ipmi_tool import IPMIExecutor`).
+- Avoid introducing new dependencies unless needed for IPMI interaction.
