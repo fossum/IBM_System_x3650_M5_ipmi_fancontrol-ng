@@ -18,103 +18,123 @@ __all__ = ["IPMIInterface"]
 
 
 class IPMIInterface:
-	"""High-level IPMI interface used by fan control logic.
+    """High-level IPMI interface used by fan control logic.
 
-	This class wraps the lower-level IPMI modules to provide a stable API
-	for existing scripts while using the newer IPMI executor and managers.
-	"""
+    This class wraps the lower-level IPMI modules to provide a stable API
+    for existing scripts while using the newer IPMI executor and managers.
+    """
 
-	def __init__(self, config: FanConfig) -> None:
-		"""Initialize the interface using configuration.
+    def __init__(self, config: FanConfig) -> None:
+        """Initialize the interface using configuration.
 
-		Args:
-			config: Fan configuration object.
-		"""
-		self._log = logging.getLogger(__name__)
-		self._config = config
-		self._ipmi = IPMIExecutor(self._build_ipmi_config(config))
-		self._sensor_manager = SensorManager(self._ipmi)
-		self._bmc_manager = BMCManager(self._ipmi)
+        Args:
+            config: Fan configuration object.
+        """
+        self._log = logging.getLogger(__name__)
+        self._config = config
+        self._ipmi = IPMIExecutor(self._build_ipmi_config(config))
+        self._sensor_manager = SensorManager(self._ipmi)
+        self._bmc_manager = BMCManager(self._ipmi)
 
-	@staticmethod
-	def _build_ipmi_config(config: FanConfig) -> IPMIConfig:
-		ipmi_section = config.get_section("ipmi")
-		connectmode = ipmi_section.get("connectmode", "open").lower()
-		interface = IPMIConnectionMode.OPEN
-		if connectmode == "lan":
-			interface = IPMIConnectionMode.LAN
-		elif connectmode in {"lanplus", "lan_plus", "lan+"}:
-			interface = IPMIConnectionMode.LAN_PLUS
+    @staticmethod
+    def _build_ipmi_config(config: FanConfig) -> IPMIConfig:
+        ipmi_section = config.get_section("ipmi")
+        connectmode = ipmi_section.get("connectmode", "open").lower()
+        interface = IPMIConnectionMode.OPEN
+        if connectmode == "lan":
+            interface = IPMIConnectionMode.LAN
+        elif connectmode in {"lanplus", "lan_plus", "lan+"}:
+            interface = IPMIConnectionMode.LAN_PLUS
 
-		return IPMIConfig(
-			host=ipmi_section.get("host"),
-			username=ipmi_section.get("username"),
-			password=ipmi_section.get("password"),
-			interface=interface,
-			tool_path=ipmi_section.get("binary", "ipmitool"),
-			timeout=int(ipmi_section.get("timeout", 30)),
-		)
+        return IPMIConfig(
+            host=ipmi_section.get("host"),
+            username=ipmi_section.get("username"),
+            password=ipmi_section.get("password"),
+            interface=interface,
+            tool_path=ipmi_section.get("binary", "ipmitool"),
+            timeout=int(ipmi_section.get("timeout", 30)),
+        )
 
-	def connect(self) -> bool:
-		"""Validate the IPMI tool and connection settings.
+    def connect(self) -> bool:
+        """Validate the IPMI tool and connection settings.
 
-		Returns:
-			True if a connection test succeeds, False otherwise.
-		"""
-		return self._ipmi.test_connection()
+        Returns:
+            True if a connection test succeeds, False otherwise.
+        """
+        return self._ipmi.test_connection()
 
-	def close(self) -> None:
-		"""Close the interface (no-op for ipmitool)."""
-		return None
+    def close(self) -> None:
+        """Close the interface (no-op for ipmitool)."""
+        return None
 
-	def get_sensors(self, sensor_type: Optional[str] = None) -> tuple[SensorReading, ...]:
-		"""Return sensor readings.
+    def get_sensors(self, sensor_type: Optional[str] = None) -> tuple[SensorReading, ...]:
+        """Return sensor readings.
 
-		Args:
-			sensor_type: Optional sensor type (e.g. "Fan", "Temperature").
+        Args:
+            sensor_type: Optional sensor type (e.g. "Fan", "Temperature").
 
-		Returns:
-			Tuple of sensor readings.
-		"""
-		if not sensor_type:
-			return self._sensor_manager.get_sensor_list()
+        Returns:
+            Tuple of sensor readings.
 
-		sensor_type_normalized = sensor_type.strip().lower()
-		if sensor_type_normalized == "fan":
-			return self._sensor_manager.get_fan_sensors()
-		if sensor_type_normalized in {"temp", "temperature"}:
-			return self._sensor_manager._get_sensors_by_type("temperature")
+        Example Sensor Types:
+            Temperature               Voltage
+            Current                   Fan
+            Physical Security         Platform Security
+            Processor                 Power Supply
+            Power Unit                Cooling Device
+            Other                     Memory
+            Drive Slot / Bay          POST Memory Resize
+            System Firmwares          Event Logging Disabled
+            Watchdog1                 System Event
+            Critical Interrupt        Button
+            Module / Board            Microcontroller
+            Add-in Card               Chassis
+            Chip Set                  Other FRU
+            Cable / Interconnect      Terminator
+            System Boot Initiated     Boot Error
+            OS Boot                   OS Critical Stop
+            Slot / Connector          System ACPI Power State
+            Watchdog2                 Platform Alert
+            Entity Presence           Monitor ASIC
+            LAN                       Management Subsys Health
+            Battery                   Session Audit
+            Version Change            FRU State
+        """
+        if not sensor_type:
+            return self._sensor_manager.get_sensor_list()
 
-		return self._sensor_manager._get_sensors_by_type(sensor_type_normalized)
+        sensor_type_normalized = sensor_type.strip().lower()
 
-	def send_raw_command(self, netfn: int, cmd: int, data: Iterable[int]) -> bytes | None:
-		"""Send a raw IPMI command.
+        return self._sensor_manager._get_sensors_by_type(sensor_type_normalized)
 
-		Args:
-			netfn: IPMI NetFn value.
-			cmd: IPMI command value.
-			data: Iterable of data bytes.
+    def send_raw_command(self, netfn: int, cmd: int, data: Iterable[int]) -> bytes | None:
+        """Send a raw IPMI command.
 
-		Returns:
-			Response bytes if any, otherwise None.
-		"""
-		raw_command = [self._as_hex(netfn), self._as_hex(cmd)]
-		raw_command.extend(self._as_hex(value) for value in data)
-		output = self._ipmi.execute_raw(raw_command)
-		return self._parse_raw_output(output)
+        Args:
+            netfn: IPMI NetFn value.
+            cmd: IPMI command value.
+            data: Iterable of data bytes.
 
-	@staticmethod
-	def _as_hex(value: int) -> str:
-		if not 0 <= value <= 0xFF:
-			raise ValueError("Raw command values must be between 0 and 255")
-		return f"0x{value:02X}"
+        Returns:
+            Response bytes if any, otherwise None.
+        """
+        raw_command = [self._as_hex(netfn), self._as_hex(cmd)]
+        raw_command.extend(self._as_hex(value) for value in data)
+        output = self._ipmi.execute_raw(raw_command)
+        return self._parse_raw_output(output)
 
-	@staticmethod
-	def _parse_raw_output(output: str) -> bytes | None:
-		if not output:
-			return None
-		try:
-			parts = [part for part in output.split() if part]
-			return bytes(int(part, 16) for part in parts)
-		except ValueError:
-			return None
+    @staticmethod
+    def _as_hex(value: int) -> str:
+        if not 0 <= value <= 0xFF:
+            raise ValueError("Raw command values must be between 0 and 255")
+        return f"0x{value:02X}"
+
+    @staticmethod
+    def _parse_raw_output(output: str) -> bytes | None:
+        if not output:
+            return None
+        try:
+            parts = [part for part in output.split() if part]
+            return bytes(int(part, 16) for part in parts)
+        except ValueError:
+            return None

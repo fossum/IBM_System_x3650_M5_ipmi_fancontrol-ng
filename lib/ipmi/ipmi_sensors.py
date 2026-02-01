@@ -101,6 +101,9 @@ class SensorReport:
                     upper_non_recoverable=SensorReport._parse_value(parts[9]),
                 )
         elif len(parts) == 5:
+            # Invalid sensor lines.
+            if parts[0].lower() in ("all cpus", "one of the cpus"):
+                return None
             value_unit = parts[4]
             value, unit = SensorReport._parse_value_with_unit(value_unit)
             sensor = SensorReading(
