@@ -52,12 +52,11 @@ class Fan:
         cpu_temp_difference = self.current_cpu_temp - self.last_set_cpu_temp
         gpu_temp_difference = self.current_gpu_temp - self.last_set_gpu_temp
         if abs(cpu_temp_difference) > self.min_temp_change or abs(gpu_temp_difference) > self.min_temp_change:
-            print("\n********************** Updating Fan Speeds **********************")
-            print(f"We last updated fan speed {cpu_temp_difference}°C ago (CPU Temperature).")
-            print(f"We last updated fan speed {gpu_temp_difference}°C ago (GPU Temperature).")
-            print(f"Current CPU Temperature is {self.current_cpu_temp}°C.")
-            print(f"Current GPU Temperature is {self.current_gpu_temp}°C.")
-            print("*****************************************************************")
+            self.log.info("Updating Fan Speeds")
+            self.log.info(f"We last updated fan speed {cpu_temp_difference}°C ago (CPU Temperature).")
+            self.log.info(f"We last updated fan speed {gpu_temp_difference}°C ago (GPU Temperature).")
+            self.log.info(f"Current CPU Temperature is {self.current_cpu_temp}°C.")
+            self.log.info(f"Current GPU Temperature is {self.current_gpu_temp}°C.")
             self.last_set_cpu_temp = self.current_cpu_temp
             self.last_set_gpu_temp = self.current_gpu_temp
             self.current_fan_duty_cycle = fan_speed
@@ -81,7 +80,7 @@ class Fan:
         calculated_speed = 0
 
         # Find the correct temperature range for interpolation
-        for temp_threshold in sorted(self.cpu_temp_scale.keys(), reverse=True):
+        for temp_threshold in sorted(self.cpu_temp_scale.keys()):
             if current_cpu_temp <= temp_threshold:
                 m, b = self.cpu_temp_scale[temp_threshold]
                 calculated_speed = (m * current_cpu_temp) + b

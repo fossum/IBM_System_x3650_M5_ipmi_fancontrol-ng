@@ -46,6 +46,7 @@ class CPU:
         if cpu_temps:
             return tuple(cpu_temps)
         if fallback_temps:
+            self._log.warning("No CPU-specific temperature sensors found. Falling back to other available temperature sensors.")
             return tuple(fallback_temps)
         return ()
 

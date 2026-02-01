@@ -105,7 +105,7 @@ class IPMIInterface:
 
         sensor_type_normalized = sensor_type.strip().lower()
 
-        return self._sensor_manager._get_sensors_by_type(sensor_type_normalized)
+        return self._sensor_manager.get_sensors_by_type(sensor_type_normalized)
 
     def send_raw_command(self, netfn: int, cmd: int, data: Iterable[int]) -> bytes | None:
         """Send a raw IPMI command.
