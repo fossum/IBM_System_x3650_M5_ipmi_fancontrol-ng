@@ -48,7 +48,7 @@ class SensorReading:
 class SensorReport:
     """IPMI sensor report."""
 
-    logger = logging.getLogger(__name__)
+    _log = logging.getLogger(__name__)
 
     def __init__(self, report: str) -> None:
         """Initialize sensor report.
@@ -113,7 +113,7 @@ class SensorReport:
                 status=SensorReport._parse_value(parts[2]),
             )
         else:
-            SensorReport.logger.warning(f"Unexpected sensor report format: {line}")
+            SensorReport._log.warning(f"Unexpected sensor report format: {line}")
         return sensor
 
     @staticmethod
@@ -175,7 +175,7 @@ class SensorManager:
             ipmi_executor: IPMI command executor instance
         """
         self.ipmi = ipmi_executor
-        self.logger = logging.getLogger(__name__)
+        self._log = logging.getLogger(__name__)
 
     def get_sensor_list(self) -> tuple[SensorReading, ...]:
         """Get list of all sensors.

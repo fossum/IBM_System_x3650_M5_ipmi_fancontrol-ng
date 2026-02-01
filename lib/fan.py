@@ -2,12 +2,12 @@ import logging
 from typing import TYPE_CHECKING, Dict, Optional, Tuple
 
 if TYPE_CHECKING:
-    from .fanconfig import FanConfig
-    from .ipmi import IPMIInterface
+    from fan_config import FanConfig
+    from ipmi import IPMIInterface
 
 
 class Fan:
-    log = logging.getLogger(__name__)
+    _log = logging.getLogger(__name__)
 
     def __init__(self, config: "FanConfig", ipmi: "IPMIInterface"):
         self.config = config
@@ -39,11 +39,11 @@ class Fan:
                     temp = int(key.split('_')[1])
                     self.cpu_temp_to_fan_speed[temp] = float(value)
                 except (ValueError, IndexError):
-                    self.log.warning(f"Could not parse temperature curve entry: {key}={value}")
+                    self._log.warning(f"Could not parse temperature curve entry: {key}={value}")
 
     def _internal_do_set_fan_speed(self, fan_speed: float):
         for i in range(1, self.number_of_fanbanks + 1):
-            self.log.info(f"Setting FanBank n°{i} speed to {fan_speed}%")
+            self._log.info(f"Setting FanBank n°{i} speed to {fan_speed}%")
             # IPMI raw command to set fan speed for IBM System x3650 M5
             # netfn=0x3a, cmd=0x07, data=[bank, speed, 0x01]
             self.ipmi.send_raw_command(netfn=0x3a, cmd=0x07, data=[i, int(fan_speed), 0x01])
@@ -52,11 +52,11 @@ class Fan:
         cpu_temp_difference = self.current_cpu_temp - self.last_set_cpu_temp
         gpu_temp_difference = self.current_gpu_temp - self.last_set_gpu_temp
         if abs(cpu_temp_difference) > self.min_temp_change or abs(gpu_temp_difference) > self.min_temp_change:
-            self.log.info("Updating Fan Speeds")
-            self.log.info(f"We last updated fan speed {cpu_temp_difference}°C ago (CPU Temperature).")
-            self.log.info(f"We last updated fan speed {gpu_temp_difference}°C ago (GPU Temperature).")
-            self.log.info(f"Current CPU Temperature is {self.current_cpu_temp}°C.")
-            self.log.info(f"Current GPU Temperature is {self.current_gpu_temp}°C.")
+            self._log.info("Updating Fan Speeds")
+            self._log.info(f"We last updated fan speed {cpu_temp_difference}°C ago (CPU Temperature).")
+            self._log.info(f"We last updated fan speed {gpu_temp_difference}°C ago (GPU Temperature).")
+            self._log.info(f"Current CPU Temperature is {self.current_cpu_temp}°C.")
+            self._log.info(f"Current GPU Temperature is {self.current_gpu_temp}°C.")
             self.last_set_cpu_temp = self.current_cpu_temp
             self.last_set_gpu_temp = self.current_gpu_temp
             self.current_fan_duty_cycle = fan_speed
@@ -72,7 +72,7 @@ class Fan:
                     b = current[1] - (m * current[0])
                     self.cpu_temp_scale[a] = (m, b)
                 except ZeroDivisionError:
-                    self.log.warning(f"Cannot calculate slope for temp {a}; duplicate temperature points in config?")
+                    self._log.warning(f"Cannot calculate slope for temp {a}; duplicate temperature points in config?")
             previous = current
 
     def calculate_desired_fan_speed(self, current_cpu_temp: float) -> Tuple[float, float]:
@@ -89,10 +89,10 @@ class Fan:
 
         # If temperature is above all defined points, use the highest setting
         if calculated_speed == 0 and self.cpu_temp_to_fan_speed:
-             highest_temp = max(self.cpu_temp_to_fan_speed.keys())
-             if current_cpu_temp > highest_temp:
-                 desired_fan_speed = self.cpu_temp_to_fan_speed[highest_temp]
-                 calculated_speed = desired_fan_speed
+            highest_temp = max(self.cpu_temp_to_fan_speed.keys())
+            if current_cpu_temp > highest_temp:
+                desired_fan_speed = self.cpu_temp_to_fan_speed[highest_temp]
+                calculated_speed = desired_fan_speed
 
         return desired_fan_speed, calculated_speed
 
@@ -107,14 +107,6 @@ class Fan:
         print(f"Current Fan Duty Cycle: {self.current_fan_duty_cycle}%")
         print(f"Desired Fan Duty Cycle: {desired_fan_speed}%")
 
-        speed_raw = format(int(calculated_speed), 'x')
-        try:
-            with open('/tmp/fan_speed_telegraf', 'w') as fh:
-                fh.write(f"fans,host={self.hostname} speed_percent={calculated_speed}\n")
-                fh.write(f"fans,host={self.hostname} speed_raw={speed_raw}\n")
-        except IOError as e:
-            self.log.warning(f"Could not write to /tmp/fan_speed_telegraf: {e}")
-
         self.set_fan_speed(desired_fan_speed)
 
     def get_current_fan_duty_cycle(self) -> float:
@@ -125,13 +117,13 @@ class Fan:
 
     def detect_number_of_fans(self) -> int:
         """Detects the number of fans by querying IPMI sensors."""
-        self.log.debug("Detecting number of fans...")
+        self._log.debug("Detecting number of fans...")
         fan_sensors = self.ipmi.get_sensors(sensor_type='Fan')
 
-        self.log.debug("--- Found IPMI Fan Sensors ---")
+        self._log.debug("--- Found IPMI Fan Sensors ---")
         for sensor in fan_sensors:
-            self.log.debug(f"  - Name: {sensor.name}, Value: {sensor.value}, Unit: {sensor.unit}")
-        self.log.debug("------------------------------")
+            self._log.debug(f"  - Name: {sensor.name}, Value: {sensor.value}, Unit: {sensor.unit}")
+        self._log.debug("------------------------------")
 
         return sum(
             1

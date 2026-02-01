@@ -55,7 +55,7 @@ class IPMIExecutor:
     connections, without any high-level logic for sensors or fans.
     """
 
-    logger = logging.getLogger(__name__)
+    _log = logging.getLogger(__name__)
 
     def __init__(self, config: Optional[IPMIConfig] = None):
         """Initialize IPMI command executor.
@@ -116,7 +116,7 @@ class IPMIExecutor:
             IPMIError: If tool is not found
         """
         cmd = self._build_command(subcommand)
-        self.logger.debug(f"Executing IPMI command: {' '.join(cmd[:3])} ...")
+        self._log.debug(f"Executing IPMI command: {' '.join(cmd[:3])} ...")
 
         try:
             result = subprocess.run(
@@ -134,7 +134,7 @@ class IPMIExecutor:
 
         if result.returncode != 0:
             error_msg = f"IPMI command failed (exit {result.returncode}): {result.stderr.strip()}"
-            self.logger.error(error_msg)
+            self._log.error(error_msg)
             raise IPMICommandError(error_msg)
 
         return result.stdout.strip()

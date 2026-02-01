@@ -4,6 +4,8 @@
 [system]
 # min_temp_change = 0
 # seconds_to_sleep = 3
+# number_of_fanbanks = 4
+# hostname = localhost
 
 [ipmi]
 # connectmode = open

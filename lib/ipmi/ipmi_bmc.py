@@ -17,7 +17,7 @@ from .ipmi_tool import IPMIExecutor
 class BMCReport:
     """IPMI BMC report."""
 
-    logger = logging.getLogger(__name__)
+    _log = logging.getLogger(__name__)
 
     def __init__(self, report: str) -> None:
         """Initialize BMC report.
@@ -80,7 +80,7 @@ class BMCManager:
     with specific support for temperature and fan sensors.
     """
 
-    logger = logging.getLogger(__name__)
+    _log = logging.getLogger(__name__)
 
     def __init__(self, ipmi_executor: IPMIExecutor):
         """Initialize BMC manager.

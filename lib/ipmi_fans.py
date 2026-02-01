@@ -35,7 +35,7 @@ class FanController:
         }
     }
 
-    logger = logging.getLogger(__name__)
+    _log = logging.getLogger(__name__)
 
     def __init__(self, ipmi_exec: IPMIExecutor, sensor_report: SensorReport | None = None):
         """Initialize fan controller.
@@ -93,6 +93,8 @@ class FanController:
                 fan_cmd = cmd_entry.get("command")
                 if isinstance(fan_cmd, list):
                     raw_command = list(fan_cmd)
+                else:
+                    raise ValueError(f"Invalid command format in cmd_entry: {fan_cmd}")
                 raw_command.extend(
                     [
                         FanController.as_hex_byte_str(fan_bank),
@@ -106,9 +108,9 @@ class FanController:
         try:
             self.ipmi.execute_raw(raw_command)
         except IPMIError as e:
-            self.logger.error(f"Failed to set fan bank {fan_bank} speed: {e}")
+            self._log.error(f"Failed to set fan bank {fan_bank} speed: {e}")
             return False
-        self.logger.info(f"Set fan bank {fan_bank} to {speed_percent}%")
+        self._log.info(f"Set fan bank {fan_bank} to {speed_percent}%")
         return True
 
     def set_all_fans_speed(self, speed_percent: int) -> bool:
