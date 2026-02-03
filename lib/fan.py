@@ -93,7 +93,7 @@ class Fan:
         desired_fan_speed: float | None = None
         calculated_speed: float | None = None
 
-        # Find the correct temperature range for interpolation
+        # Find the correct temperature range for interpolation.
         for temp_threshold in sorted(self.cpu_temp_scale.keys()):
             if current_cpu_temp <= temp_threshold:
                 m, b = self.cpu_temp_scale[temp_threshold]
@@ -101,15 +101,15 @@ class Fan:
                 desired_fan_speed = round(calculated_speed)
                 break # Found the correct range
 
-        if isinstance(desired_fan_speed, None) or isinstance(calculated_speed, None):
-            raise ValueError("Could not calculate desired fan speed; check temperature curve configuration.")
-
-        # If temperature is above all defined points, use the highest setting
-        if calculated_speed == 0 and self.cpu_temp_to_fan_speed:
+        # If temperature is above all defined points, use the highest setting.
+        if calculated_speed is None and self.cpu_temp_to_fan_speed:
             highest_temp = max(self.cpu_temp_to_fan_speed.keys())
             if current_cpu_temp > highest_temp:
                 desired_fan_speed = self.cpu_temp_to_fan_speed[highest_temp]
                 calculated_speed = desired_fan_speed
+
+        if desired_fan_speed is None or calculated_speed is None:
+            raise ValueError("Could not calculate desired fan speed; check temperature curve configuration.")
 
         return desired_fan_speed, calculated_speed
 
