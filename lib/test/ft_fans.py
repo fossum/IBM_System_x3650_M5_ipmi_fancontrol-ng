@@ -8,13 +8,13 @@ sys.path.insert(0, str(LIB_ROOT))
 from test.connection import get_config
 
 from ipmi.ipmi_tool import IPMIExecutor
-from ipmi_fans import FanController
+from ipmi.ipmi_fans import FanController
 
 
 if __name__ == "__main__":
     config = get_config()
 
-    speed = 1
+    speed = 30  # Desired fan speed percentage
 
     ipmi_executor = IPMIExecutor(config)
     if not ipmi_executor.test_connection():

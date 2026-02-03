@@ -31,6 +31,14 @@ class FanConfig:
             return default
 
     def get_section(self, section: str) -> dict[str, str]:
+        """Get a section from the configuration.
+
+        Args:
+            section (str): The section in the config file.
+
+        Returns:
+            dict[str, str]: A dictionary of key-value pairs from the section.
+        """
         return dict(self.config[section]) if section in self.config else {}
 
     def validate_config(self) -> bool:

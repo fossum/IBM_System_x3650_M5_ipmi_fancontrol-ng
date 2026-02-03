@@ -16,8 +16,8 @@
 
 [temperature_curve]
 # Temperature to fan speed mappings (temp_celsius = fan_speed_percent)
-# temp_80 = 250
-# temp_70 = 150
+# temp_80 = 100
+# temp_70 = 75
 # temp_55 = 50
 # temp_40 = 25
-# temp_10 = 5
+# temp_10 = 1

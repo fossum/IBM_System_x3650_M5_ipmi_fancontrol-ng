@@ -7,6 +7,11 @@ if TYPE_CHECKING:
 
 
 class Fan:
+    """Fan control class for IBM System x3650 M5 using IPMI.
+
+    Note: Likely deprecated in favor of ipmi_fans.FanController.
+    """
+
     _log = logging.getLogger(__name__)
 
     def __init__(self, config: "FanConfig", ipmi: "IPMIInterface"):
@@ -85,8 +90,8 @@ class Fan:
         Returns:
             Tuple[float, float]: Desired fan speed percentage and calculated speed before rounding.
         """
-        desired_fan_speed = 0
-        calculated_speed = 0
+        desired_fan_speed: float | None = None
+        calculated_speed: float | None = None
 
         # Find the correct temperature range for interpolation
         for temp_threshold in sorted(self.cpu_temp_scale.keys()):
@@ -95,6 +100,9 @@ class Fan:
                 calculated_speed = (m * current_cpu_temp) + b
                 desired_fan_speed = round(calculated_speed)
                 break # Found the correct range
+
+        if isinstance(desired_fan_speed, None) or isinstance(calculated_speed, None):
+            raise ValueError("Could not calculate desired fan speed; check temperature curve configuration.")
 
         # If temperature is above all defined points, use the highest setting
         if calculated_speed == 0 and self.cpu_temp_to_fan_speed:
