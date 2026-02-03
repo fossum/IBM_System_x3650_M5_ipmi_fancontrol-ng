@@ -194,9 +194,9 @@ class SensorManager:
         Returns:
             tuple[SensorReading, ...]: Fan sensor readings.
         """
-        return self._get_sensors_by_type("fan")
+        return self.get_sensors_by_type("fan")
 
-    def _get_sensors_by_type(self, name: str) -> tuple[SensorReading, ...]:
+    def get_sensors_by_type(self, name: str) -> tuple[SensorReading, ...]:
         """Get sensors by their type.
 
         Args:

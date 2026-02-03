@@ -40,6 +40,8 @@ class Fan:
                     self.cpu_temp_to_fan_speed[temp] = float(value)
                 except (ValueError, IndexError):
                     self._log.warning(f"Could not parse temperature curve entry: {key}={value}")
+        if not self.cpu_temp_to_fan_speed:
+            self._log.error("No temperature curve entries found in config.")
 
     def _internal_do_set_fan_speed(self, fan_speed: float):
         for i in range(1, self.number_of_fanbanks + 1):
@@ -76,6 +78,13 @@ class Fan:
             previous = current
 
     def calculate_desired_fan_speed(self, current_cpu_temp: float) -> Tuple[float, float]:
+        """Calculates desired fan speed based on current CPU temperature using linear interpolation.
+
+        Args:
+            current_cpu_temp (float): Current CPU temperature in degrees Celsius.
+        Returns:
+            Tuple[float, float]: Desired fan speed percentage and calculated speed before rounding.
+        """
         desired_fan_speed = 0
         calculated_speed = 0
 
