@@ -1,4 +1,10 @@
+# Local User Settings
+config.conf
 .env
+
+# Byte-compiled / optimized / DLL files
 *.pyc
 
+# Temporary files
+*~
 temp*.py

@@ -1,0 +1,23 @@
+# IPMI Fan Control Configuration File
+# This file contains configuration settings for the IPMI fan control script
+
+[system]
+# min_temp_change = 0
+# seconds_to_sleep = 3
+# number_of_fanbanks = 4
+# hostname = localhost
+
+[ipmi]
+# connectmode = open
+# Uncomment and configure these if using remote IPMI
+# username = username_goes_here
+# password = password_goes_here
+# host = ip_address_goes_here
+
+[temperature_curve]
+# Temperature to fan speed mappings (temp_celsius = fan_speed_percent)
+# temp_80 = 100
+# temp_70 = 75
+# temp_55 = 50
+# temp_40 = 25
+# temp_10 = 1

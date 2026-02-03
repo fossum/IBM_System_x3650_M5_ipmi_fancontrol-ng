@@ -1,5 +1,6 @@
 {
     "cSpell.words": [
+        "cpus",
         "ipmitool"
     ],
     "python.autoComplete.extraPaths": [

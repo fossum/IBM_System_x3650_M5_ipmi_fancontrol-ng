@@ -10,7 +10,6 @@ License: See LICENSE file included with this distribution
 
 import re
 import logging
-from curses.ascii import isdigit
 
 from .ipmi_tool import IPMIExecutor
 
@@ -18,7 +17,7 @@ from .ipmi_tool import IPMIExecutor
 class BMCReport:
     """IPMI BMC report."""
 
-    logger = logging.getLogger(__name__)
+    _log = logging.getLogger(__name__)
 
     def __init__(self, report: str) -> None:
         """Initialize BMC report.
@@ -53,7 +52,7 @@ class BMCReport:
 
         Note: Unknown (0x415) will also result in 1045.
         """
-        if all(isdigit(char) for char in value):
+        if value.isdigit():
             return int(value)
         if (match := re.search(r"0x(\d+)", value)):
             return int(match.group(1), 16)
@@ -81,7 +80,7 @@ class BMCManager:
     with specific support for temperature and fan sensors.
     """
 
-    logger = logging.getLogger(__name__)
+    _log = logging.getLogger(__name__)
 
     def __init__(self, ipmi_executor: IPMIExecutor):
         """Initialize BMC manager.
